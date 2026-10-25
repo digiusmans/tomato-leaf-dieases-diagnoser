@@ -1,0 +1,6 @@
+{
+    "image_size": [224, 224],
+    "preprocessing": "mobilenet_v2",
+    "num_classes": 10,
+    "model_file": "best_tomato_model.keras"
+}
