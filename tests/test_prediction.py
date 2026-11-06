@@ -11,19 +11,31 @@
 
 
 from PIL import Image
-from predict import predict_disease
-import os
+from src.predict import predict_disease
+from pathlib import Path
 
-test_folder = "../test_images"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+TEST_IMAGES = PROJECT_ROOT / "test_images"
 
-for file_name in os.listdir(test_folder):
-    file_path = os.path.join(test_folder, file_name)
 
-    image = Image.open(file_path)
+def test_prediction():
+    image_files = [
+        path for path in TEST_IMAGES.iterdir()
+        if path.suffix.lower() in [".jpg", ".jpeg", ".png"]
+    ]
 
-    results = predict_disease(image)
+    assert image_files, "No test images found."
 
-    print(f"\nTesting: {file_name}")
+    for file_path in image_files:
+        with Image.open(file_path) as image:
+            result = predict_disease(image)
 
-    for i, result in enumerate(results, 1):
-        print(f"{i}. {result['label']} -> {result['confidence']:.2f}%")
+        assert isinstance(result, dict)
+        assert "valid" in result
+
+        if result["valid"]:
+            assert "predictions" in result
+
+            for prediction in result["predictions"]:
+                assert "label" in prediction
+                assert "confidence" in prediction

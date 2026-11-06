@@ -1,51 +1,39 @@
-from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 from PIL import Image
+from src.predict import predict_disease
 
-THIS_DIR = Path(__file__).resolve().parent
-ROOT_DIR = THIS_DIR.parent
-SRC_DIR = ROOT_DIR / "src"
-TEST_IMAGES_DIR = ROOT_DIR / "test_images"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+TEST_IMAGES_DIR = PROJECT_ROOT / "test_images"
 
-for path in (SRC_DIR, ROOT_DIR):
-    path_str = str(path)
-    if path_str not in sys.path:
-        sys.path.insert(0, path_str)
-
-from predict import predict_disease  # noqa: E402
-
-SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff", ".jfif"}
+SUPPORTED_EXTENSIONS = {
+    ".jpg", ".jpeg", ".png", ".bmp", ".webp",
+    ".tif", ".tiff", ".jfif"
+}
 
 
-def main() -> None:
-    if not TEST_IMAGES_DIR.exists():
-        print(f"Test images folder not found: {TEST_IMAGES_DIR}")
-        sys.exit(1)
+def test_all_classes():
+    assert TEST_IMAGES_DIR.exists(), "Test images folder not found."
 
     image_files = sorted(
-        [path for path in TEST_IMAGES_DIR.iterdir() if path.is_file() and path.suffix.lower() in SUPPORTED_EXTENSIONS]
+        path for path in TEST_IMAGES_DIR.iterdir()
+        if path.is_file()
+        and path.suffix.lower() in SUPPORTED_EXTENSIONS
     )
 
-    if not image_files:
-        print(f"No test images found in: {TEST_IMAGES_DIR}")
-        sys.exit(1)
+    assert image_files, "No test images found."
 
     for image_path in image_files:
-        print(f"Testing: {image_path.name}\n")
-        try:
-            with Image.open(image_path) as image:
-                predictions = predict_disease(image)
+        with Image.open(image_path) as image:
+            result = predict_disease(image)
 
-            for index, prediction in enumerate(predictions, start=1):
-                print(f"{index}. {prediction['label']} -> {prediction['confidence']:.2f}%")
-            print()
+        assert isinstance(result, dict)
+        assert "valid" in result
 
-        except Exception as exc:
-            print(f"Failed to process {image_path.name}: {exc}\n")
+        if result["valid"]:
+            assert "predictions" in result
 
-
-if __name__ == "__main__":
-    main()
+            for prediction in result["predictions"]:
+                assert "label" in prediction
+                assert "confidence" in prediction
